@@ -1,0 +1,19 @@
+# === Secretos y credenciales ===
+.env
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+*.egg-info/
+dist/
+build/
+
+# === IDEs ===
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+.DS_Store

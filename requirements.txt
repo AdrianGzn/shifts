@@ -5,3 +5,4 @@ pymysql
 google-auth
 pydantic
 python-dotenv
+PyJWT

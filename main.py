@@ -25,6 +25,58 @@ def get_db():
 def root():
     return {"message": "Bienvenido a la API de Accesos. Ve a /docs para ver la documentacion de Swagger UI."}
 
+from pydantic import BaseModel
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/login", tags=["Auth"])
+def login(login_req: LoginRequest, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.mail == login_req.email).first()
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+    
+    hashed_pass = hashlib.sha256(login_req.password.encode()).hexdigest()
+    if db_user.password != hashed_pass:
+        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+        
+    access_token = auth.create_access_token(
+        data={"sub": str(db_user.id), "email": db_user.mail, "name": db_user.name}
+    )
+    return {"access_token": access_token, "token_type": "bearer", "user": db_user}
+
+class GoogleLoginRequest(BaseModel):
+    token: str
+
+@app.post("/auth/google", tags=["Auth"])
+def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests
+        idinfo = None
+        for client_id in auth.VALID_CLIENT_IDS:
+            try:
+                idinfo = id_token.verify_oauth2_token(req.token, requests.Request(), client_id)
+                break
+            except ValueError:
+                continue
+        if not idinfo:
+            raise HTTPException(status_code=401, detail="Token de Google invalido")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Error validando token de Google")
+
+    email = idinfo.get("email")
+    name = idinfo.get("name", "Usuario")
+
+    db_user = db.query(models.User).filter(models.User.mail == email).first()
+    if not db_user:
+        return {"needs_registration": True, "email": email, "name": name}
+    
+    access_token = auth.create_access_token(
+        data={"sub": str(db_user.id), "email": db_user.mail, "name": db_user.name}
+    )
+    return {"access_token": access_token, "token_type": "bearer", "user": db_user, "needs_registration": False}
+
 # ============================================================
 # ORGANIZACIONES - CRUD completo
 # ============================================================

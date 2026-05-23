@@ -6,3 +6,4 @@ google-auth
 pydantic
 python-dotenv
 PyJWT
+requests

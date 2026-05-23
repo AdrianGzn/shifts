@@ -25,10 +25,20 @@ def get_db():
 def root():
     return {"message": "Bienvenido a la API de Accesos. Ve a /docs para ver la documentacion de Swagger UI."}
 
-# --- Organizaciones ---
+# ============================================================
+# ORGANIZACIONES - CRUD completo
+# ============================================================
+
 @app.get("/organizations/", response_model=List[schemas.Organization], tags=["Organizations"])
 def read_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
     return db.query(models.Organization).offset(skip).limit(limit).all()
+
+@app.get("/organizations/{org_id}", response_model=schemas.Organization, tags=["Organizations"])
+def read_organization(org_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+    if not db_org:
+        raise HTTPException(status_code=404, detail="Organizacion no encontrada")
+    return db_org
 
 @app.post("/organizations/", response_model=schemas.Organization, tags=["Organizations"])
 def create_organization(org: schemas.OrganizationCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
@@ -38,10 +48,41 @@ def create_organization(org: schemas.OrganizationCreate, db: Session = Depends(g
     db.refresh(db_org)
     return db_org
 
-# --- Users ---
+@app.put("/organizations/{org_id}", response_model=schemas.Organization, tags=["Organizations"])
+def update_organization(org_id: int, org: schemas.OrganizationUpdate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+    if not db_org:
+        raise HTTPException(status_code=404, detail="Organizacion no encontrada")
+    update_data = org.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_org, key, value)
+    db.commit()
+    db.refresh(db_org)
+    return db_org
+
+@app.delete("/organizations/{org_id}", tags=["Organizations"])
+def delete_organization(org_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
+    if not db_org:
+        raise HTTPException(status_code=404, detail="Organizacion no encontrada")
+    db.delete(db_org)
+    db.commit()
+    return {"detail": "Organizacion eliminada correctamente"}
+
+# ============================================================
+# USERS - CRUD completo
+# ============================================================
+
 @app.get("/users/", response_model=List[schemas.User], tags=["Users"])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
     return db.query(models.User).offset(skip).limit(limit).all()
+
+@app.get("/users/{user_id}", response_model=schemas.User, tags=["Users"])
+def read_user(user_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return db_user
 
 @app.post("/users/", response_model=schemas.User, tags=["Users"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
@@ -53,10 +94,44 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db), current
     db.refresh(db_user)
     return db_user
 
-# --- Shifts ---
+@app.put("/users/{user_id}", response_model=schemas.User, tags=["Users"])
+def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    update_data = user.model_dump(exclude_unset=True)
+    # Si se actualiza la contraseña, encriptarla
+    if "password" in update_data and update_data["password"] is not None:
+        update_data["password"] = hashlib.sha256(update_data["password"].encode()).hexdigest()
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.delete("/users/{user_id}", tags=["Users"])
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    db.delete(db_user)
+    db.commit()
+    return {"detail": "Usuario eliminado correctamente"}
+
+# ============================================================
+# SHIFTS - CRUD completo
+# ============================================================
+
 @app.get("/shifts/", response_model=List[schemas.Shift], tags=["Shifts"])
 def read_shifts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
     return db.query(models.Shift).offset(skip).limit(limit).all()
+
+@app.get("/shifts/{shift_id}", response_model=schemas.Shift, tags=["Shifts"])
+def read_shift(shift_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_shift = db.query(models.Shift).filter(models.Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    return db_shift
 
 @app.post("/shifts/", response_model=schemas.Shift, tags=["Shifts"])
 def create_shift(shift: schemas.ShiftCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
@@ -66,10 +141,41 @@ def create_shift(shift: schemas.ShiftCreate, db: Session = Depends(get_db), curr
     db.refresh(db_shift)
     return db_shift
 
-# --- Visitors ---
+@app.put("/shifts/{shift_id}", response_model=schemas.Shift, tags=["Shifts"])
+def update_shift(shift_id: int, shift: schemas.ShiftUpdate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_shift = db.query(models.Shift).filter(models.Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    update_data = shift.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_shift, key, value)
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift
+
+@app.delete("/shifts/{shift_id}", tags=["Shifts"])
+def delete_shift(shift_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_shift = db.query(models.Shift).filter(models.Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    db.delete(db_shift)
+    db.commit()
+    return {"detail": "Turno eliminado correctamente"}
+
+# ============================================================
+# VISITORS - CRUD completo
+# ============================================================
+
 @app.get("/visitors/", response_model=List[schemas.Visitor], tags=["Visitors"])
 def read_visitors(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
     return db.query(models.Visitor).offset(skip).limit(limit).all()
+
+@app.get("/visitors/{visitor_id}", response_model=schemas.Visitor, tags=["Visitors"])
+def read_visitor(visitor_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_visitor = db.query(models.Visitor).filter(models.Visitor.id == visitor_id).first()
+    if not db_visitor:
+        raise HTTPException(status_code=404, detail="Visitante no encontrado")
+    return db_visitor
 
 @app.post("/visitors/", response_model=schemas.Visitor, tags=["Visitors"])
 def create_visitor(visitor: schemas.VisitorCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
@@ -79,10 +185,41 @@ def create_visitor(visitor: schemas.VisitorCreate, db: Session = Depends(get_db)
     db.refresh(db_visitor)
     return db_visitor
 
-# --- Access Logs ---
+@app.put("/visitors/{visitor_id}", response_model=schemas.Visitor, tags=["Visitors"])
+def update_visitor(visitor_id: int, visitor: schemas.VisitorUpdate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_visitor = db.query(models.Visitor).filter(models.Visitor.id == visitor_id).first()
+    if not db_visitor:
+        raise HTTPException(status_code=404, detail="Visitante no encontrado")
+    update_data = visitor.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_visitor, key, value)
+    db.commit()
+    db.refresh(db_visitor)
+    return db_visitor
+
+@app.delete("/visitors/{visitor_id}", tags=["Visitors"])
+def delete_visitor(visitor_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_visitor = db.query(models.Visitor).filter(models.Visitor.id == visitor_id).first()
+    if not db_visitor:
+        raise HTTPException(status_code=404, detail="Visitante no encontrado")
+    db.delete(db_visitor)
+    db.commit()
+    return {"detail": "Visitante eliminado correctamente"}
+
+# ============================================================
+# ACCESS LOGS - CRUD completo
+# ============================================================
+
 @app.get("/access-logs/", response_model=List[schemas.AccessLog], tags=["Access Logs"])
 def read_access_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
     return db.query(models.AccessLog).offset(skip).limit(limit).all()
+
+@app.get("/access-logs/{log_id}", response_model=schemas.AccessLog, tags=["Access Logs"])
+def read_access_log(log_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_log = db.query(models.AccessLog).filter(models.AccessLog.id == log_id).first()
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Registro de acceso no encontrado")
+    return db_log
 
 @app.post("/access-logs/", response_model=schemas.AccessLog, tags=["Access Logs"])
 def create_access_log(log: schemas.AccessLogCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
@@ -93,3 +230,24 @@ def create_access_log(log: schemas.AccessLogCreate, db: Session = Depends(get_db
     db.commit()
     db.refresh(db_log)
     return db_log
+
+@app.put("/access-logs/{log_id}", response_model=schemas.AccessLog, tags=["Access Logs"])
+def update_access_log(log_id: int, log: schemas.AccessLogUpdate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_log = db.query(models.AccessLog).filter(models.AccessLog.id == log_id).first()
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Registro de acceso no encontrado")
+    update_data = log.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_log, key, value)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+@app.delete("/access-logs/{log_id}", tags=["Access Logs"])
+def delete_access_log(log_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    db_log = db.query(models.AccessLog).filter(models.AccessLog.id == log_id).first()
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Registro de acceso no encontrado")
+    db.delete(db_log)
+    db.commit()
+    return {"detail": "Registro de acceso eliminado correctamente"}

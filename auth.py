@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Client IDs de Google para Web y Móvil
-GOOGLE_WEB_CLIENT_ID = os.getenv("GOOGLE_WEB_CLIENT_ID")
-GOOGLE_MOBILE_CLIENT_ID = os.getenv("GOOGLE_MOBILE_CLIENT_ID")
+# Fallback hardcoded en caso de que .env no se cargue en el servidor remoto
+GOOGLE_WEB_CLIENT_ID = os.getenv("GOOGLE_WEB_CLIENT_ID", "777549895961-o3vshogh18s3b2jesccn46n4btm01r72.apps.googleusercontent.com")
+GOOGLE_MOBILE_CLIENT_ID = os.getenv("GOOGLE_MOBILE_CLIENT_ID", "777549895961-l48kgjfp6ht3bjg47lavb1o618hbhtgd.apps.googleusercontent.com")
 
 # JWT Custom Secret
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-1234")

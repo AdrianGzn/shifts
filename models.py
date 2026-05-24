@@ -34,10 +34,10 @@ class Organization(Base):
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True, index=True)
-    idOrganization = Column(Integer, ForeignKey("organization.id"), nullable=False)
+    idOrganization = Column(Integer, ForeignKey("organization.id"), nullable=True)
     name = Column(String(100), nullable=False)
     password = Column(String(255), nullable=False)
-    mail = Column(String(100), unique=True, index=True, nullable=False)
+    mail = Column(String(100), unique=True, index=True, nullable=True)
     role = Column(SQLEnum(Role), default=Role.empleado, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())

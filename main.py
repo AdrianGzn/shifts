@@ -32,13 +32,15 @@ class LoginRequest(BaseModel):
 
 @app.post("/login", tags=["Auth"])
 def login(login_req: LoginRequest, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.mail == login_req.email).first()
+    db_user = db.query(models.User).filter(
+        (models.User.mail == login_req.email) | (models.User.name == login_req.email)
+    ).first()
     if not db_user:
-        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+        raise HTTPException(status_code=401, detail="Usuario/Correo o contraseña incorrectos")
     
     hashed_pass = hashlib.sha256(login_req.password.encode()).hexdigest()
     if db_user.password != hashed_pass:
-        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+        raise HTTPException(status_code=401, detail="Usuario/Correo o contraseña incorrectos")
         
     access_token = auth.create_access_token(
         data={"sub": str(db_user.id), "email": db_user.mail, "name": db_user.name}
@@ -129,7 +131,7 @@ def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
 # ============================================================
 
 @app.get("/organizations/", response_model=List[schemas.Organization], tags=["Organizations"])
-def read_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+def read_organizations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Organization).offset(skip).limit(limit).all()
 
 @app.get("/organizations/{org_id}", response_model=schemas.Organization, tags=["Organizations"])
@@ -184,7 +186,7 @@ def read_user(user_id: int, db: Session = Depends(get_db), current_user=Depends(
     return db_user
 
 @app.post("/users/", response_model=schemas.User, tags=["Users"])
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(**user.model_dump(exclude={"password"}))
     # Encriptar clave igual que en script (SHA256)
     db_user.password = hashlib.sha256(user.password.encode()).hexdigest()

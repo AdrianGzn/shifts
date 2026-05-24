@@ -41,9 +41,9 @@ class Organization(OrganizationBase):
 
 # --- User ---
 class UserBase(BaseModel):
-    idOrganization: int
+    idOrganization: Optional[int] = None
     name: str
-    mail: str
+    mail: Optional[str] = None
     role: Role = Role.empleado
     is_active: bool = True
 

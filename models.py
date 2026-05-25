@@ -48,16 +48,14 @@ class User(Base):
 class Shift(Base):
     __tablename__ = "shift"
     id = Column(Integer, primary_key=True, index=True)
-    idUser = Column(Integer, ForeignKey("user.id"), nullable=True)
-    idVisitor = Column(Integer, ForeignKey("visitor.id"), nullable=True)
+    idUser = Column(Integer, ForeignKey("user.id"), nullable=False)
     date = Column(Date, nullable=False)
     startTime = Column(Time, nullable=False)
-    endTime = Column(Time, nullable=True)
+    endTime = Column(Time, nullable=False)
     notes = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     
     user = relationship("User", back_populates="shifts")
-    visitor = relationship("Visitor", back_populates="shifts")
 
 class Visitor(Base):
     __tablename__ = "visitor"
@@ -68,8 +66,6 @@ class Visitor(Base):
     reason = Column(String(150), nullable=False)
     phone = Column(String(20), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
-
-    shifts = relationship("Shift", back_populates="visitor")
 
 class AccessLog(Base):
     __tablename__ = "access_log"

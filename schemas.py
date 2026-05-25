@@ -65,10 +65,11 @@ class User(UserBase):
 
 # --- Shift ---
 class ShiftBase(BaseModel):
-    idUser: int
+    idUser: Optional[int] = None
+    idVisitor: Optional[int] = None
     date: date
     startTime: time
-    endTime: time
+    endTime: Optional[time] = None
     notes: Optional[str] = None
 
 class ShiftCreate(ShiftBase):
@@ -76,6 +77,7 @@ class ShiftCreate(ShiftBase):
 
 class ShiftUpdate(BaseModel):
     idUser: Optional[int] = None
+    idVisitor: Optional[int] = None
     date: Optional[date] = None
     startTime: Optional[time] = None
     endTime: Optional[time] = None

@@ -131,3 +131,9 @@ class AccessLog(AccessLogBase):
     id: int
     timestamp_event: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+# --- Send Mail ---
+class SendMailRequest(BaseModel):
+    idEmisor: int
+    mensaje: str
+    idReceptor: int

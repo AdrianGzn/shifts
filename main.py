@@ -352,3 +352,60 @@ def delete_access_log(log_id: int, db: Session = Depends(get_db), current_user=D
     db.delete(db_log)
     db.commit()
     return {"detail": "Registro de acceso eliminado correctamente"}
+
+# ============================================================
+# SEND MAIL - Conecta con el microservicio de correos
+# ============================================================
+
+import requests as http_requests
+
+MAIL_MICROSERVICE_URL = "http://localhost:8082/api/mail/send"
+
+@app.post("/sendMail", tags=["Mail"])
+def send_mail(req: schemas.SendMailRequest, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user_token)):
+    # 1. Buscar emisor
+    emisor = db.query(models.User).filter(models.User.id == req.idEmisor).first()
+    if not emisor:
+        raise HTTPException(status_code=404, detail="Emisor no encontrado")
+
+    # 2. Buscar receptor
+    receptor = db.query(models.User).filter(models.User.id == req.idReceptor).first()
+    if not receptor:
+        raise HTTPException(status_code=404, detail="Receptor no encontrado")
+
+    if not receptor.mail:
+        raise HTTPException(status_code=400, detail="El receptor no tiene correo registrado")
+
+    # 3. Buscar organización del emisor
+    if not emisor.idOrganization:
+        raise HTTPException(status_code=400, detail="El emisor no tiene organización asignada")
+
+    organizacion = db.query(models.Organization).filter(models.Organization.id == emisor.idOrganization).first()
+    if not organizacion:
+        raise HTTPException(status_code=404, detail="Organización del emisor no encontrada")
+
+    # 4. Armar payload para el microservicio
+    payload = {
+        "organizationName": organizacion.name,
+        "organizationId": str(organizacion.id),
+        "senderName": emisor.name,
+        "senderId": str(emisor.id),
+        "senderMessage": req.mensaje,
+        "recipientName": receptor.name,
+        "recipientId": str(receptor.id),
+        "recipientEmail": receptor.mail
+    }
+
+    # 5. Enviar al microservicio
+    try:
+        response = http_requests.post(MAIL_MICROSERVICE_URL, json=payload, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except http_requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=503, detail="No se pudo conectar con el microservicio de correos. Asegúrate de que esté corriendo en localhost:8082")
+    except http_requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="El microservicio de correos tardó demasiado en responder")
+    except http_requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"Error del microservicio: {e.response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado al enviar correo: {str(e)}")
